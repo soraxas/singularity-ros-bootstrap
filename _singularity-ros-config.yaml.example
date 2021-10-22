@@ -1,0 +1,28 @@
+container_name: melodic
+ros_name: melodic
+
+default_ros_source: ws_moveit/devel_debug/setup.bash
+bindings:
+  - /run
+
+  # this is to avoid using assh as proxy inside singularity
+  - $BOOTSTRAP_ROOT/etc/BLANK_FILE:$HOME/.ssh/config
+
+  - $BOOTSTRAP_ROOT/utilities/ros_bashrc:$HOME/.bashrc
+
+  # for rg
+  - /usr/bin/rg
+  - /usr/lib/libpcre.so
+  - /usr/lib/libpcre2-8.so.0
+
+  - /usr/bin/fzf
+
+  # make system site-package writable
+  - "$BOOTSTRAP_ROOT/etc/_usr_lib_python2.7_dist-packages_ompl:/usr/lib/python2.7/dist-packages/ompl"
+
+  # make git work
+  - "/usr/lib/libgit2.so.1.2,/usr/lib/libpcre.so.1,/usr/lib/libhttp_parser.so.2.9,/usr/lib/libc.so.6"
+
+  # use default diff rather than delta
+  - "$HOME/.config/yadm/alt/.gitconfig.local##default:$HOME/.gitconfig.local"
+  - /usr/bin/pyenv
