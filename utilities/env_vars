@@ -1,0 +1,2 @@
+#export PATH="/cling_2020-10-25_ROOT-ubuntu18.04/bin:$PATH"
+#export PATH="$HOME/ROS/miniconda3/bin:$PATH"
