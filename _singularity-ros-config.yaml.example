@@ -1,11 +1,12 @@
+# vi: ft=yaml
 ros_version: noetic
 container_name: noetic
 
-target_shell: fish
+target_shell: bash
 
 default_ros_source: ws_moveit/devel_debug/setup.bash
 bindings:
-  # - /run
+  - /run
   #
   # # this is to avoid using assh as proxy inside singularity
   # - $BOOTSTRAP_ROOT/etc/BLANK_FILE:$HOME/.ssh/config
@@ -31,6 +32,8 @@ bindings:
 
 cmd_to_run_inside_container:
   before_ros_source:
-    - echo remove_token_from_path $HOME/.pyenv/shims >/dev/null
+    - echo '>> Inside the Singularity container'
+  after_ros_source_expand_vars:
+    - pwd
   after_ros_source:
-    - ls
+    - echo '>> Sourced ROS'

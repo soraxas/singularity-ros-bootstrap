@@ -73,9 +73,11 @@ esac
 
 CMDS_AFTER_ROS_SOURCE=""
 for cmd in "${CONFIG_cmd_to_run_inside_container_after_ros_source[@]}"; do
-  # the following formulation expands env variables
   CMDS_AFTER_ROS_SOURCE+="$(echo "$cmd") ; "
-  # CMDS_AFTER_ROS_SOURCE+="$(eval echo "$cmd") ; "
+done
+for cmd in "${CONFIG_cmd_to_run_inside_container_after_ros_source_expand_vars[@]}"; do
+  # the following formulation expands env variables
+  CMDS_AFTER_ROS_SOURCE+="$(eval echo "$cmd") ; "
 done
 CMDS_AFTER_ROS_SOURCE+=": "
 
