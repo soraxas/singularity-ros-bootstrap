@@ -1,12 +1,6 @@
 #!/bin/bash
 
 set -e
-# set -x
-
-if [ -n "$SINGULARITY_NAME" ]; then
-  echo "Already in a singularity container!"
-  exec fish
-fi
 
 path="$(dirname "$0" )"
 CONFIG_FILE="$path"/_singularity-ros-config.yaml
@@ -23,6 +17,11 @@ if ! create_variables "$CONFIG_FILE" CONFIG_; then
   exit 1
 fi
 
+if [ -n "$SINGULARITY_NAME" ]; then
+  echo "Already in a singularity container!"
+  exec "$CONFIG_target_shell"
+fi
+
 
 TARGET="$path/$CONFIG_container_name"
 SINGULARITY=singularity
@@ -34,9 +33,11 @@ BOOTSTRAP_ROOT="$path/_singularity-bootstrap"
 
 
 # join binds arrary with comma
-BINDS="-B $(IFS=, ; echo "${CONFIG_bindings[*]}")"
+BINDS="$(IFS=, ; echo "${CONFIG_bindings[*]}")"
 # expand any variable in string to the actual environment variable (with the ! exclamation point)
-BINDS="$(eval echo $BINDS)"
+if [ -n "$BINDS" ]; then
+  BINDS="-B $(eval echo $BINDS)"
+fi
 
 #####################################################################
 
@@ -44,18 +45,43 @@ BINDS="$(eval echo $BINDS)"
 # NOT too safe tho..
 CAPS="--add-caps ALL"
 
-export SHELL=/bin/bash
-export SPACEFISH_DIR_SUFFIX=" [ROS_Singularity] "
+
 
 _default_ros_source="$path/$CONFIG_default_ros_source"
-ROS_PREP="remove_token_from_path $HOME/.pyenv/shims >/dev/null && if test -f $_default_ros_source; bass source $_default_ros_source; end"
 
 
-EXTRAS=""
-for cmd in "${CONFIG_cmd_to_run_inside_container[@]}"; do
-    EXTRAS+="$(eval echo "$cmd") && "
+CMDS_BEFORE_ROS_SOURCE=""
+for cmd in "${CONFIG_cmd_to_run_inside_container_before_ros_source[@]}"; do
+  # the following formulation expands env variables
+  CMDS_BEFORE_ROS_SOURCE+="$(echo "$cmd") ; "
+  # CMDS_BEFORE_ROS_SOURCE+="$(eval echo "$cmd") ; "
 done
-EXTRAS+=": "
+CMDS_BEFORE_ROS_SOURCE+=": "
+
+case "$CONFIG_target_shell" in
+  bash|zsh)
+    ROS_SOURCE="if test -f $_default_ros_source; then source $_default_ros_source; fi "
+    ;;
+  fish)
+    ROS_SOURCE="if test -f $_default_ros_source; bass source $_default_ros_source; end "
+    ;;
+  *)
+    # unknown shell
+    echo ">> Not performing ros source due to unknown shell $CONFIG_target_shell" 
+    ROS_SOURCE=": "
+esac
+
+CMDS_AFTER_ROS_SOURCE=""
+for cmd in "${CONFIG_cmd_to_run_inside_container_after_ros_source[@]}"; do
+  # the following formulation expands env variables
+  CMDS_AFTER_ROS_SOURCE+="$(echo "$cmd") ; "
+  # CMDS_AFTER_ROS_SOURCE+="$(eval echo "$cmd") ; "
+done
+CMDS_AFTER_ROS_SOURCE+=": "
+
+
+INITIALISE_CMD="$CMDS_BEFORE_ROS_SOURCE ; $ROS_SOURCE ; $CMDS_AFTER_ROS_SOURCE"
+
 
 #####################################################################
 # retrieve options
@@ -69,6 +95,7 @@ for arg; do
       ;;
     -v|--verbose)
       verbose="true"
+      set -x
       ;;
     --nv|--cuda|--nvidia)
       use_nv="true"
@@ -121,20 +148,26 @@ case "$command" in
     msg=">> $SINGULARITY run $CAPS [SOME_LONG_BINDS] $TARGET"
   fi
   echo "$msg"
-  # echo ">> startup cmd: $ROS_PREP && $EXTRAS"
-  $direnv_unload $cmd fish -C "$ROS_PREP && $EXTRAS"
-  #$cmd fish -C "$ROS_PREP && $EXTRAS && cd '$DIR_TO_CD'"
+  case "$CONFIG_target_shell" in
+    bash)
+      $direnv_unload $cmd "$CONFIG_target_shell" $target_shell_init_command --init-file <(echo "$INITIALISE_CMD")
+      ;;
+    fish)
+      $direnv_unload $cmd "$CONFIG_target_shell" $target_shell_init_command -C "$INITIALISE_CMD"
+      ;;
+  esac
+  #$cmd "$CONFIG_target_shell" -C "$ROS_PREP && $CMDS_AFTER_ROS_SOURCE && cd '$DIR_TO_CD'"
   ;;
 exec)
   shift
   cmd="$SINGULARITY run $CAPS $BINDS $TARGET"
   echo ">> $cmd $@"
-  # echo ">> startup cmd: $ROS_PREP && $EXTRAS"
   $cmd $@
   ;;
 -w)
   echo "> Starting singularity with --writable flag"
-  cmd="sudo $SINGULARITY run -B $HOME --writable $TARGET fish"
+  cmd="$SINGULARITY run -B $HOME --writable --fakeroot $TARGET $CONFIG_target_shell"
+  cmd="$SINGULARITY run  --writable --fakeroot $TARGET $CONFIG_target_shell"
   echo ">> $cmd"
   $cmd
   ;;
