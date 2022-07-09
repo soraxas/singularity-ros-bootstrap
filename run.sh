@@ -111,6 +111,13 @@ done
 
 #####################################################################
 
+CMDS_BEFORE_CONTAINER=""
+for cmd in "${CONFIG_cmd_to_run_before_entering_container[@]}"; do
+  # the following formulation expands env variables
+  eval "$cmd"
+done
+
+
 command="$1"
 
 case "$command" in

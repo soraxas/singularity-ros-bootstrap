@@ -30,6 +30,9 @@ bindings:
   # - "$HOME/.config/yadm/alt/.gitconfig.local##default:$HOME/.gitconfig.local"
   # - /usr/bin/pyenv
 
+cmd_to_run_before_entering_container:
+  - echo ">> Inside shell $SHELL"
+
 cmd_to_run_inside_container:
   before_ros_source:
     - echo '>> Inside the Singularity container'
