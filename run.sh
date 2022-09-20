@@ -32,8 +32,23 @@ BOOTSTRAP_ROOT="$path/_singularity-bootstrap"
 # load bindings from yaml
 
 
+declare -A uniq_bindings=()
+for b in "${CONFIG_bindings[@]}"; do
+  uniq_bindings[$b]=1
+done
+# collect the bindings for the list of binaries
+for binary in "${CONFIG_binary_bindings[@]}"; do
+  uniq_bindings[$binary]=1
+  for shared_lib in $(ldd "$binary" | awk '/ => / { print $3 }'); do
+    if [ ! -f "$TARGET/$shared_lib" ]; then
+      uniq_bindings[$shared_lib]=1
+    fi
+  done
+done
+
 # join binds arrary with comma
-BINDS="$(IFS=, ; echo "${CONFIG_bindings[*]}")"
+BINDS="$(IFS=, ; echo "${!uniq_bindings[*]}")"
+
 # expand any variable in string to the actual environment variable (with the ! exclamation point)
 if [ -n "$BINDS" ]; then
   BINDS="-B $(eval echo $BINDS)"
@@ -67,7 +82,7 @@ case "$CONFIG_target_shell" in
     ;;
   *)
     # unknown shell
-    echo ">> Not performing ros source due to unknown shell $CONFIG_target_shell" 
+    echo ">> Not performing ros source due to unknown shell $CONFIG_target_shell"
     ROS_SOURCE=": "
 esac
 

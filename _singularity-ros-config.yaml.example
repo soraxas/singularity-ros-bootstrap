@@ -29,6 +29,9 @@ bindings:
   # # use default diff rather than delta
   # - "$HOME/.config/yadm/alt/.gitconfig.local##default:$HOME/.gitconfig.local"
   # - /usr/bin/pyenv
+binary_bindings:
+  # this binds the binary, and also collect the list of shared libraries that are needed (and not exists inside the container)
+  - /bin/ls
 
 cmd_to_run_before_entering_container:
   - echo ">> Inside shell $SHELL"
