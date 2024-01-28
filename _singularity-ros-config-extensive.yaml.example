@@ -1,0 +1,45 @@
+ros_version: noetic
+container_name: noetic
+
+# target_shell: bash
+target_shell: fish
+
+default_ros_source: ws_jaco-diff/devel_debug/setup.bash
+bindings:
+  - /run
+
+  # this is to avoid using assh as proxy inside singularity
+  - $BOOTSTRAP_ROOT/etc/BLANK_FILE:$HOME/.ssh/config
+
+
+  # for rg
+  # - /usr/bin/rg
+  # - /usr/lib/libpcre.so
+  # - /usr/lib/libpcre2-8.so.0
+
+  # - /usr/bin/fzf
+
+  # make system site-package writable
+  # - "$BOOTSTRAP_ROOT/etc/_usr_lib_python2.7_dist-packages_ompl:/usr/lib/python2.7/dist-packages/ompl"
+
+  # make git work
+  # - "/usr/lib/libgit2.so.1.4,/usr/lib/libpcre.so.1,/usr/lib/libhttp_parser.so.2.9,/usr/lib/libc.so.6"
+
+  # use default diff rather than delta
+  - "$HOME/.config/yadm/alt/.gitconfig.local##default:$HOME/.gitconfig.local"
+  # - /usr/bin/pyenv
+binary_bindings:
+  # this binds the binary, and also collect the list of shared libraries that are needed (and not exists inside the container)
+  - /usr/bin/micromamba
+
+cmd_to_run_inside_container:
+  before_ros_source:
+    - remove_token_from_path $HOME/.pyenv/shims >/dev/null
+  after_ros_source:
+  after_ros_source_expand_variables:
+    - source /opt/ros/$CONFIG_ros_version/share/rosbash/rosfish
+    - source $BOOTSTRAP_ROOT/utilities/env_vars
+    # for correct scaling of gazebo
+    - export QT_AUTO_SCREEN_SCALE_FACTOR=1
+    - export QT_SCALE_FACTOR=1.0
+    - source $BOOTSTRAP_ROOT/utilities/init.fish
