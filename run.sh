@@ -118,6 +118,10 @@ for arg; do
       use_nv="true"
       CAPS="$CAPS --nv"
       ;;
+    --nvccli)
+      use_nv="true"
+      CAPS="$CAPS --nvccli"
+      ;;
     *)
       # set back any unused args
       set -- "$@" "$arg"
