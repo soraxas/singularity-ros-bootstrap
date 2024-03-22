@@ -21,4 +21,5 @@ if [ -z "$CONFIG_ros_version" ]; then
   echo "ros version not set!"
 fi
 
-singularity build --sandbox ${CONFIG_ros_version}/ docker://osrf/ros:${CONFIG_ros_version}-desktop-full
+singularity build --sandbox ${CONFIG_ros_version}/ docker-daemon://osrf/ros:${CONFIG_ros_version}-desktop-full
+# singularity build --sandbox ${CONFIG_ros_version}/ docker://osrf/ros:${CONFIG_ros_version}-desktop-full
