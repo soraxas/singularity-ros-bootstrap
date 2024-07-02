@@ -1,0 +1,3 @@
+ #!/bin/sh
+
+ rosdep install --from-paths src --ignore-src --as-root=apt:false
