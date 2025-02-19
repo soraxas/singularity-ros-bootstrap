@@ -1,0 +1,11 @@
+#!/bin/bash
+
+ROS_WS=~/ROS/ros2_ws
+
+# USE_NINJA=( -G Ninja --event-handlers=console_cohesion+)
+
+set -x
+(
+  cd $ROS_WS
+  rosdep check --from-paths src --ignore-src
+)

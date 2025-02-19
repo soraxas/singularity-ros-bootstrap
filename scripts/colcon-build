@@ -1,0 +1,14 @@
+#!/bin/bash
+
+ROS_WS=~/ROS/ros2_ws
+
+# USE_NINJA=( -G Ninja --event-handlers=console_cohesion+)
+
+set -x
+(
+  cd $ROS_WS
+    # --symlink-install \
+  colcon build \
+    --cmake-args -DPython3_EXECUTABLE=/usr/bin/python3 --no-warn-unused-cli \
+    --cmake-args -DCMAKE_EXPORT_COMPILE_COMMANDS=ON ${USE_NINJA[@]} --base-paths ~/ROS/ros2_ws/src/ $@
+)

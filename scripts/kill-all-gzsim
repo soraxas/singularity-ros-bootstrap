@@ -1,0 +1,3 @@
+#!/bin/sh
+set -x
+pkill -f "gz sim" -9
