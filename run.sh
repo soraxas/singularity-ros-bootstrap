@@ -4,7 +4,6 @@ set -e
 
 COMMAND="normal"
 
-
 export Color_Off='\033[0m'             # Text Reset
 # Regular Colors
 export Color_Black='\033[1;30m'        # Bold Black
@@ -86,7 +85,7 @@ for arg; do
     esac
 done
 
-path="$(dirname "$0" )"
+path="$(realpath "$(dirname "$0" )")"
 CONFIG_FILE="$path"/_singularity-ros-config.yaml
 if [ ! -f "$CONFIG_FILE" ]; then
     error_echo "$CONFIG_FILE does not exists."
@@ -110,16 +109,18 @@ fi
 TARGET="$path/$CONFIG_container_name"
 SINGULARITY=singularity
 
-BOOTSTRAP_ROOT="$path/_singularity-bootstrap"
+export BOOTSTRAP_ROOT="$path/_singularity-bootstrap"
 
 #####################################################################
 # load bindings from yaml
 
 
 declare -A uniq_bindings=()
-for b in "${CONFIG_bindings[@]}"; do
-    uniq_bindings[$b]=1
-done
+if [ "$COMMAND" != "use_root" ]; then
+  for b in "${CONFIG_bindings[@]}"; do
+      uniq_bindings[$b]=1
+  done
+fi
 # collect the bindings for the list of binaries
 for binary in "${CONFIG_binary_bindings[@]}"; do
     uniq_bindings[$binary]=1
@@ -172,6 +173,23 @@ case "$CONFIG_target_shell" in
         ROS_SOURCE=": "
 esac
 
+get_export_pair() {
+    # replace reference to ~ with correct user home
+    _target_home=$HOME
+    [ "$COMMAND" = "use_root" ] && _target_home=/root || :
+
+    # replace the tilda
+    export_pair="$(echo "$1" | sed 's:=~/:='"$_target_home"'/:')"
+    # expands any variables
+    export_pair="$(eval echo "$export_pair")"
+    echo "export "$export_pair"; "
+}
+
+for vars in "${CONFIG_pre_variables[@]}"; do
+  # eval RIGHT now
+  eval "$(get_export_pair "$vars")"
+done
+
 CMDS_AFTER_ROS_SOURCE=""
 for cmd in "${CONFIG_cmd_to_run_inside_container_after_ros_source[@]}"; do
     CMDS_AFTER_ROS_SOURCE+="$(echo "$cmd") ; "
@@ -181,17 +199,7 @@ for cmd in "${CONFIG_cmd_to_run_inside_container_after_ros_source_expand_vars[@]
     CMDS_AFTER_ROS_SOURCE+="$(eval echo "$cmd") ; "
 done
 for vars in "${CONFIG_variables[@]}"; do
-    # replace reference to ~ with correct user home
-    if [ "$COMMAND" = "use_root" ]; then
-        _target_home=/root
-    else
-        _target_home=$HOME
-    fi
-    # replace the tilda
-    export_pair="$(echo "$vars" | sed 's:=~/:='"$_target_home"'/:')"
-    # expands any variables
-    export_pair="$(eval echo "$export_pair")"
-    CMDS_AFTER_ROS_SOURCE+="export "$export_pair"; "
+    CMDS_AFTER_ROS_SOURCE+="$(get_export_pair "$vars")"
 done
 CMDS_AFTER_ROS_SOURCE+=": "
 
